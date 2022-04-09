@@ -5,7 +5,7 @@ import json
 from tweets.downloaders.passwords import access_token, access_token_secret, bearer_token
 
 client = tweepy.Client(bearer_token=bearer_token, access_token=access_token, access_token_secret=access_token_secret)
-tracklist = ['musk', 'ethereum', 'cardano', 'russia', 'ukraine']  # 'bitcoin', 'biden', 'crypto', 'dogecoin',
+tracklist = ['musk', 'ethereum', 'cardano', 'russia', 'ukraine', 'bitcoin', 'biden', 'crypto', 'dogecoin']
 
 tweets_info = []
 users_info = []
