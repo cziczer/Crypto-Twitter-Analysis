@@ -8,14 +8,14 @@ from db_utils.db_manager import DBManager
 from math import sqrt
 
 
-class DataSelector(DBManager):
+class NetworkDataSelector(DBManager):
     def __init__(self, manager=None):
         if manager is None:
             super().__init__()
         else:
             self.connection = manager.connection
             self.cur = self.connection.cursor()
-        self.graph_users = 1000
+        self.graph_users = 100_000
         # self.graph_users = 50
         self.graph_nodes = []
         self.is_executed = False
@@ -75,7 +75,7 @@ class DataSelector(DBManager):
         print(from_date)
         print(to_date)
 
-        select_sql = "SELECT DISTINCT " \
+        select_sql = "SELECT " \
                      "  from_t.author_id AS user_A, " \
                      "  to_t.author_id AS user_B " \
                      "FROM retweet r " \

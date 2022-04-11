@@ -1,7 +1,7 @@
 import networkx as nx
 from networkx.algorithms import community
 
-from db_utils.select.network_graph.data_selector import DataSelector
+from db_utils.select.network_graph.network_data_selector import NetworkDataSelector
 
 import plotly.graph_objects as go
 
@@ -147,7 +147,6 @@ def make_network_graph(db, from_date=None, to_date=None, month_name=None):
     edges = set()  # (from, to)
     nodes = dict()  # id -> w
     # nodes_n = dict()  # id -> com
-
     for node in nodes_data:
         nodes[node['id']] = 0
 
@@ -200,7 +199,7 @@ def make_network_graph(db, from_date=None, to_date=None, month_name=None):
 
 
 if __name__ == "__main__":
-    db = DataSelector()
+    db = NetworkDataSelector()
 
     march = datetime.strptime("2022-03-01", "%Y-%m-%d").date(), datetime.strptime("2022-03-31",
                                                                                   "%Y-%m-%d").date(), "march"
