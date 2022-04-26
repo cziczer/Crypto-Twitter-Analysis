@@ -1,10 +1,10 @@
+from datetime import datetime, timedelta
 from time import sleep
-
 import tweepy
 import json
-from tweets.downloaders.passwords import access_token, access_token_secret, bearer_token
+bearer_token='AAAAAAAAAAAAAAAAAAAAAL%2BEbAEAAAAA8At2OR6ga10mmw01V6phaujlXKg%3D26ZFme57gp7WA0rLiUOgoMiIc7pj2sGebiadTwCY90fJhoTmlF'
 
-client = tweepy.Client(bearer_token=bearer_token, access_token=access_token, access_token_secret=access_token_secret)
+client = tweepy.Client(bearer_token=bearer_token)
 tracklist = ['musk', 'ethereum', 'cardano', 'russia', 'ukraine', 'bitcoin', 'biden', 'crypto', 'dogecoin']
 
 tweets_info = []
@@ -13,7 +13,7 @@ retweets_info = []
 counter = 0
 
 
-def append_data(tweet, user):
+def append_data(tweet, user, date):
     tweet_info = {
         'id': tweet.id,
         'text': tweet.text,
@@ -46,18 +46,18 @@ def append_data(tweet, user):
         'tweet_count': user.public_metrics['tweet_count'],
         'listed_count': user.public_metrics['listed_count']
     }
-    save_data_to_json(tweet_info, user_info, retweet_info)
+    save_data_to_json(tweet_info, user_info, retweet_info, date)
 
 
-def save_data_to_json(tweet, user, retweet):
+def save_data_to_json(tweet, user, retweet, date):
     # with open('tweets.json', 'r') as tweets_file:
     #     current_tweets = json.load(tweets_file)
     #     for tweet in tweets_info:
     #         current_tweets.append(tweet)
-    with open('../../data/tweets/tweets.json', 'a') as tweets_file:
+    with open(f'../../data/tweets/{date}_tweets.json', 'a') as tweets_file:
         # with open('tweets.json', 'a') as tweets_file:
-        with open('../../data/users/users.json', 'a') as users_file:
-            with open('../../data/retweets/retweets.json', 'a') as retweets_file:
+        with open(f'../../data/users/{date}_users.json', 'a') as users_file:
+            with open(f'../../data/retweets/{date}_retweets.json', 'a') as retweets_file:
                 tweets_file.write(json.dumps(tweet))
                 tweets_file.write(',\n')
                 users_file.write(json.dumps(user))
@@ -67,44 +67,56 @@ def save_data_to_json(tweet, user, retweet):
                     retweets_file.write(',\n')
 
 
-for search in tracklist:
-    last_tweet = None
-    tweets = None
-    try:
-        tweets = client.search_recent_tweets(
-            search,
-            max_results=100,
-            expansions='author_id',
-            tweet_fields=["created_at", "public_metrics", "entities",
-                          "conversation_id", "in_reply_to_user_id", "lang", "referenced_tweets"],
-            user_fields=["name", "username", "location", "verified", "description", "public_metrics"],
-        )
+start_date = datetime.today().date() - timedelta(days=9)
+day_count = 5
 
-        for tweet, user in zip(tweets.data, tweets.includes['users']):
-            append_data(tweet, user)
-        last_tweet = tweets
-        while 'next_token' in tweets.meta:
+for query_date in (start_date - timedelta(n) for n in range(day_count)):
+    for hour in range(15, 24):
+        for search in tracklist:
+            last_tweet = None
+            tweets = None
             try:
-                last_tweet = tweets
-                tweets = client.search_recent_tweets(
+                tweets = client.search_all_tweets(
                     search,
                     max_results=100,
                     expansions='author_id',
                     tweet_fields=["created_at", "public_metrics", "entities",
                                   "conversation_id", "in_reply_to_user_id", "lang", "referenced_tweets"],
                     user_fields=["name", "username", "location", "verified", "description", "public_metrics"],
+                    start_time=datetime.strptime(f'{query_date} {hour}:00', '%Y-%m-%d %H:%M'),
+                    end_time=datetime.strptime(f'{query_date} {hour}:59', '%Y-%m-%d %H:%M'),
                 )
+                print(datetime.strptime(f'{query_date} {hour}:00', '%Y-%m-%d %H:%M'))
                 for tweet, user in zip(tweets.data, tweets.includes['users']):
-                    append_data(tweet, user)
-                counter += 1
-                print(counter)
-                if counter % 10 == 0:
-                    break
+                    append_data(tweet, user, query_date)
+                last_tweet = tweets
+                while 'next_token' in tweets.meta:
+                    try:
+                        last_tweet = tweets
+                        tweets = client.search_all_tweets(
+                            search,
+                            max_results=100,
+                            expansions='author_id',
+                            tweet_fields=["created_at", "public_metrics", "entities",
+                                          "conversation_id", "in_reply_to_user_id", "lang", "referenced_tweets"],
+                            user_fields=["name", "username", "location", "verified", "description", "public_metrics"],
+                            start_time=datetime.strptime(f'{query_date} {hour}:00', '%Y-%m-%d %H:%M'),
+                            end_time=datetime.strptime(f'{query_date} {hour}:59', '%Y-%m-%d %H:%M'),
+                        )
+                        for tweet, user in zip(tweets.data, tweets.includes['users']):
+                            append_data(tweet, user, query_date)
+                        counter += 1
+                        if counter >= 1:
+                            counter = 0
+                            break
+                        print(datetime.strptime(f'{query_date} {hour}:00', '%Y-%m-%d %H:%M'))
+                    except Exception as e:
+                        counter = 0
+                        print(e)
+                        tweet = last_tweet
+                        sleep(300)
             except Exception as e:
+                counter = 0
                 print(e)
                 tweet = last_tweet
-                sleep(900)
-    except Exception as e:
-        print(e)
-        tweet = last_tweet
-        sleep(900)
+                sleep(300)
