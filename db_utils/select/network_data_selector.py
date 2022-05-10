@@ -3,19 +3,19 @@ from datetime import datetime
 # import country_converter as coco
 # import geolocation.us_states as states_mapper
 
-from db_utils.db_manager import DBManager
+from db_utils.select.data_selector import DataSelector
 
 from math import sqrt
 
 
-class NetworkDataSelector(DBManager):
+class NetworkDataSelector(DataSelector):
     def __init__(self, manager=None):
         if manager is None:
             super().__init__()
         else:
             self.connection = manager.connection
             self.cur = self.connection.cursor()
-        self.graph_users = 100_000
+        self.graph_users = 50_000
         # self.graph_users = 50
         self.graph_nodes = []
         self.is_executed = False
@@ -23,8 +23,9 @@ class NetworkDataSelector(DBManager):
     def get_graph_nodes(self):
         if len(self.graph_nodes) == 0:
             select_sql = "SELECT t.author_id AS id from tweet t " \
+                         "JOIN Retweet r on (r.to_id = t.id or r.from_id = t.id)" \
                          "GROUP BY t.author_id " \
-                         "ORDER BY sum(t.retweet_count) DESC " \
+                         "ORDER BY count(*) DESC " \
                          "LIMIT " + str(self.graph_users)
             self.cur.execute(select_sql)
             data = self.cur.fetchall()
@@ -98,6 +99,21 @@ class NetworkDataSelector(DBManager):
                      "JOIN tweet from_t on r.from_id = from_t.id " \
                      "JOIN tweet to_t on r.to_id = to_t.id " \
                      "WHERE r.type = 'quoted' " \
+                     "  AND from_t.author_id <> to_t.author_id " \
+                     "  AND from_t.created_at >= '" + from_date + "' AND from_t.created_at <= '" + to_date + "'" + \
+                     "  AND from_t.author_id IN " + self.get_graph_nodes() + \
+                     "  AND to_t.author_id IN " + self.get_graph_nodes()
+        self.cur.execute(select_sql)
+        data = self.cur.fetchall()
+        return data
+
+    def get_replies_edges(self, from_date=None, to_date=None):
+        from_date, to_date = self.parse_from_to_date(from_date, to_date)
+
+        select_sql = "SELECT DISTINCT  from_t.author_id AS user_A, to_t.author_id AS user_B FROM retweet r " \
+                     "JOIN tweet from_t on r.from_id = from_t.id " \
+                     "JOIN tweet to_t on r.to_id = to_t.id " \
+                     "WHERE r.type = 'replied_to' " \
                      "  AND from_t.author_id <> to_t.author_id " \
                      "  AND from_t.created_at >= '" + from_date + "' AND from_t.created_at <= '" + to_date + "'" + \
                      "  AND from_t.author_id IN " + self.get_graph_nodes() + \

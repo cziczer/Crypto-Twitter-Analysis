@@ -1,7 +1,7 @@
 import networkx as nx
 from networkx.algorithms import community
 
-from db_utils.select.network_graph.network_data_selector import NetworkDataSelector
+from db_utils.select.network_data_selector import NetworkDataSelector
 
 import plotly.graph_objects as go
 
@@ -23,7 +23,6 @@ def parse_nodes_weights(data, weight, nodes):
 def add_edge(user_A, user_B, edges):
     if (user_A, user_B) not in edges and (user_B, user_A) not in edges:
         edges.add((user_A, user_B))
-        print("edge added")
 
 
 def parse_edges(data, edges):
@@ -85,7 +84,7 @@ def draw_plotly_graph(G, MAX_W, month_name):
         marker=dict(
             color=colors,
             line_width=1,
-            opacity=0.8
+            opacity=1
         ))
     node_trace.text = [node['username'] for (_, node) in list(G.nodes.data())]
     # node_trace.text = [str(has_edges(node)) + G.nodes[node]['screen_name'] for node in G.nodes()]
@@ -97,6 +96,8 @@ def draw_plotly_graph(G, MAX_W, month_name):
                         titlefont_size=16,
                         showlegend=False,
                         hovermode='closest',
+                        plot_bgcolor='white',
+                        paper_bgcolor='white',
                         margin=dict(b=20, l=5, r=5, t=40),
                         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[-max_r, max_r]),
                         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[-max_r, max_r]))
@@ -140,7 +141,7 @@ MAX_SIZE = 50 + MIN_SIZE
 
 
 def make_network_graph(db, from_date=None, to_date=None, month_name=None):
-    G = nx.Graph()
+    G = nx.DiGraph()
 
     print("-- GETTING USER NODES --")
     nodes_data = db.get_user_nodes()
@@ -172,9 +173,12 @@ def make_network_graph(db, from_date=None, to_date=None, month_name=None):
     MAX_W = scaling(max(list(nodes.values())))
     print("----- Edges -----")
     parse_edges(db.get_retweet_edges(from_date, to_date), edges)
-    print("1/2 --> RETWEET edges")
+    print("1/3 --> RETWEET edges")
     parse_edges(db.get_quote_edges(from_date, to_date), edges)
-    print("2/2 --> QUOTE edges")
+    print("2/3 --> QUOTE edges")
+    parse_edges(db.get_replies_edges(from_date, to_date), edges)
+    print("3/3 --> REPLIES edges")
+
 
     print("-- Creating networkx --")
     for node in nodes_data:
@@ -194,8 +198,9 @@ def make_network_graph(db, from_date=None, to_date=None, month_name=None):
     for node in G.nodes:
         G.nodes[node]['pos'] = list(pos[node])
     print("-- Graph created --")
-
-    draw_plotly_graph(G, MAX_W, month_name)
+    nx.write_edgelist(G, 'results/network_5k.csv', data=False)
+    # nx.write_gexf(G, "results/test.gexf")
+    # draw_plotly_graph(G, MAX_W, month_name)
 
 
 if __name__ == "__main__":
