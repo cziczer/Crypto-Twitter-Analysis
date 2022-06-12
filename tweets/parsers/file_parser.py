@@ -15,11 +15,11 @@ def parse_file(filename):
         f.write(']')
 
 
-
-if __name__ == "__main__":
-    parse_file('../../data/retweets/retweets.json')
-    parse_file('../../data/tweets/tweets.json')
-    parse_file('../../data/users/users.json')
+#
+# if __name__ == "__main__":
+#     parse_file('../../data/retweets/retweets.json')
+#     parse_file('../../data/tweets/tweets.json')
+#     parse_file('../../data/users/users.json')
 
 
 
